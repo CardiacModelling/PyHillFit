@@ -9,21 +9,21 @@ import multiprocessing as mp
 
 
 def compute_log_py_approxn(temp):
-    print temp
+    print(temp)
     drug,channel,chain_file,images_dir = dr.nonhierarchical_chain_file_and_figs_dir(m, top_drug, top_channel, temp)
     chain = np.loadtxt(chain_file, usecols=range(dr.num_params))
     num_its = chain.shape[0]
     total = 0.
     start = 0
-    for it in xrange(start,num_its):
+    for it in range(start,num_its):
         temperature = 1  # approximating full likelihood
         temp_bit = dr.log_data_likelihood(responses, where_r_0, where_r_100, where_r_other, concs, chain[it, :], temperature, pi_bit)
         total += temp_bit
         if temp_bit == -np.inf:
-            print chain[it, :]
+            print(chain[it, :])
     answer = total / (num_its-start)
     if answer == -np.inf:
-        print "ANSWER IS -INF"
+        print("ANSWER IS -INF")
     return answer
 
 
@@ -54,7 +54,7 @@ num_expts, experiment_numbers, experiments = dr.load_crumb_data(top_drug, top_ch
 
 concs = np.array([])
 responses = np.array([])
-for i in xrange(num_expts):
+for i in range(num_expts):
     concs = np.concatenate((concs, experiments[i][:, 0]))
     responses = np.concatenate((responses, experiments[i][:, 1]))
 
@@ -64,7 +64,7 @@ where_r_other = (responses>0) & (responses<100)
 
 pi_bit = dr.compute_pi_bit_of_log_likelihood(where_r_other)
 num_pts = where_r_other.sum()
-for m in xrange(1, num_models+1):
+for m in range(1, num_models+1):
     dr.define_model(m)
 
     temps = (np.arange(dr.n+1.)/dr.n)**dr.c
@@ -72,16 +72,16 @@ for m in xrange(1, num_models+1):
     
     if args.num_cores == 1:
         log_p_ys = np.zeros(num_temps)
-        for i in xrange(num_temps):
+        for i in range(num_temps):
             log_p_ys[i] = compute_log_py_approxn(temps[i])
     elif args.num_cores > 1:
         pool = mp.Pool(args.num_cores)
         log_p_ys = np.array(pool.map_async(compute_log_py_approxn, temps).get(9999))
         pool.close()
         pool.join()
-    print log_p_ys
+    print(log_p_ys)
     expectations[m] = dr.trapezium_rule(temps, log_p_ys)
-    print expectations
+    print(expectations)
     
 drug, channel, chain_file, images_dir = dr.nonhierarchical_chain_file_and_figs_dir(1, top_drug, top_channel, 1)
 bf_dir = "BFs/"
