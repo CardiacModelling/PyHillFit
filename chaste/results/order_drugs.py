@@ -28,7 +28,7 @@ rows = np.arange(30)
 
 all_ranks = {drug_name: [] for drug_name in labels}
 
-for _ in xrange(num_perms):
+for _ in range(num_perms):
     perm_idx = npr.randint(0, 500, 30)
     random_apds = all_samples[rows, perm_idx]
 

@@ -13,17 +13,18 @@ import sys
 import os
 import argparse
 import scipy.stats as st
+import math
 
 try:
     import cma
 except:
     sys.exit("couldn't find module cma")
 
-from distutils.version import LooseVersion
+from packaging.version import Version  # distutils was removed in Python 3.12
 latest_tested_version = "2.6.0"
 installed_version = cma.__version__.split()[0]
-if LooseVersion(installed_version) < LooseVersion(latest_tested_version):
-    print "Version {} of cma installed. Latest tested version is {}.".format(installed_version, latest_tested_version)
+if Version(installed_version) < Version(latest_tested_version):
+    print("Version {} of cma installed. Latest tested version is {}.".format(installed_version, latest_tested_version))
     sys.exit("Please upgrade cma to use PyHillFit: https://pypi.org/project/cma/")
 
 import matplotlib.pyplot as plt
@@ -60,12 +61,8 @@ num_params = dr.num_params
 # load data from specified data file
 dr.setup(args.data_file)
 
-# list drug and channel options, select from command line
-# can select more than one of either
-drugs_to_run, channels_to_run = dr.list_drug_channel_options(args.all)
-
 """if dr.dir_name == "PyHillFit_input_file":
-    print "Removing hERG from list of channels to run"
+    print("Removing hERG from list of channels to run")
     try:
         channels_to_run.remove("hERG")
     except:
@@ -124,20 +121,20 @@ def log_data_likelihood(hill_is,pic50_is,sigma,experiments):
         truncated_scale = np.sum(np.log(st.norm.cdf(100,model_responses,sigma)-st.norm.cdf(0,model_responses,sigma)))
         answer -= (num_expt_pts*np.log(sigma) + exp_bit + truncated_scale)
     if np.isnan(answer):
-        print "NaN from log_data_likelihood!"
-        print "hill_is =", hill_is
-        print "pic50_is =", pic50_is
-        print "sigma =", sigma
+        print("NaN from log_data_likelihood!")
+        print("hill_is =", hill_is)
+        print("pic50_is =", pic50_is)
+        print("sigma =", sigma)
         sys.exit()
     return answer
 
 def log_hill_i_log_logistic_likelihood(x,alpha,beta):
     answer = np.log(beta) - beta*np.log(alpha) + (beta-1.)*np.log(x) - 2*np.log(1+(x/alpha)**beta)
     if np.any(np.isnan(answer)):
-        print "NaN from log_hill_i_log_logistic_likelihood!"
-        print "x =", x
-        print "alpha =", alpha
-        print "beta =", beta
+        print("NaN from log_hill_i_log_logistic_likelihood!")
+        print("x =", x)
+        print("alpha =", alpha)
+        print("beta =", beta)
         sys.exit()
     return answer
 
@@ -145,10 +142,10 @@ def log_pic50_i_logistic_likelihood(x,mu,s):
     temp_bit = (x-mu)/s
     answer = -temp_bit - np.log(s) - 2*np.log(1+np.exp(-temp_bit))
     if np.any(np.isnan(answer)):
-        print "NaN from log_pic50_i_logistic_likelihood!"
-        print "x =", x
-        print "mu =", mu
-        print "s =", s
+        print("NaN from log_pic50_i_logistic_likelihood!")
+        print("x =", x)
+        print("mu =", mu)
+        print("s =", s)
         sys.exit()
     else:
         return answer
@@ -159,12 +156,12 @@ def log_beta_prior(x,alpha,beta,a,b):
     else:
         answer = (alpha-1)*np.log(x-a) + (beta-1)*np.log(b-x)
         if np.isnan(answer):
-            print "NaN from log_beta_prior!"
-            print "x =", x
-            print "alpha =", alpha
-            print "beta =", beta
-            print "a =", a
-            print "b =", b
+            print("NaN from log_beta_prior!")
+            print("x =", x)
+            print("alpha =", alpha)
+            print("beta =", beta)
+            print("a =", a)
+            print("b =", b)
             sys.exit()
         else:
             return answer
@@ -186,8 +183,8 @@ def log_target_distribution(experiments,theta,shapes,scales,locs):
     total += np.sum(log_pic50_i_logistic_likelihood(pic50_is,mu,s))
     total += np.sum(dr.log_gamma_prior(theta[[0,1,2,3,-1]],shapes,scales,locs))
     if np.isnan(total):
-        print "NaN from log_target_distribution!"
-        print "theta =", theta
+        print("NaN from log_target_distribution!")
+        print("theta =", theta)
         sys.exit()
     else:
         return total
@@ -219,7 +216,7 @@ def run_hierarchical(drug_channel):
 
     drug, channel = drug_channel
     
-    print "\n\n{} + {}\n\n".format(drug,channel)
+    print("\n\n{} + {}\n\n".format(drug,channel))
 
     # for reproducible results, otherwise choose a different seed
     seed = 1
@@ -230,10 +227,10 @@ def run_hierarchical(drug_channel):
         experiment_numbers = [x for x in experiment_numbers[:num_expts]]
         experiments = [x for x in experiments[:num_expts]]
     elif (args.num_expts==0):
-        print "Fitting to all datasets\n"
+        print("Fitting to all datasets\n")
     else:
-        print "You've asked to fit to an impossible number of experiments for {} + {}\n".format(drug,channel)
-        print "Therefore proceeding with all experiments in the input data file\n"
+        print("You've asked to fit to an impossible number of experiments for {} + {}\n".format(drug,channel))
+        print("Therefore proceeding with all experiments in the input data file\n")
         
     # set up where to save chains and figures to
     # also renames anything with a '/' in its name and changes it to a '_'
@@ -277,12 +274,12 @@ def run_hierarchical(drug_channel):
     skip_best_fits_plot = False
     if (num_expts>len(colors)):
         skip_best_fits_plot = True
-        print "Not enough colours to print all experiments' best fits, so skipping that"
+        print("Not enough colours to print all experiments' best fits, so skipping that")
         
     if (not skip_best_fits_plot):
         for expt in experiment_numbers:
-            print "best_fits:", best_fits
-            print "best_fits[{}]:".format(expt), best_fits[expt]
+            print("best_fits:", best_fits)
+            print("best_fits[{}]:".format(expt), best_fits[expt])
             ax.plot(x, dr.dose_response_model(x, best_fits[expt,1], dr.pic50_to_ic50(best_fits[expt,0])),color=colors[expt],lw=2)
             ax.scatter(experiments[expt][:,0],experiments[expt][:,1],label='Expt {}'.format(expt+1),color=colors[expt],s=100)
         ax.set_ylim(0,100)
@@ -291,7 +288,7 @@ def run_hierarchical(drug_channel):
         ax.set_ylabel('% {} block'.format(channel))
         ax.legend(loc=2)
         ax.grid()
-        ax.set_title('Hills = {}\nIC50s = {}'.format([round(best_fits[expt,1],1) for expt in experiment_numbers],[round(dr.pic50_to_ic50(best_fits[expt,0]),1) for expt in experiment_numbers]))
+        ax.set_title('Hills = {}\nIC50s = {}'.format([round(float(best_fits[expt,1]),1) for expt in experiment_numbers],[round(float(dr.pic50_to_ic50(best_fits[expt,0])),1) for expt in experiment_numbers]))
         fig.tight_layout()
         fig.savefig(figs_dir+'{}_{}_cma-es_best_fits.png'.format(drug,channel))
         fig.savefig(figs_dir+'{}_{}_cma-es_best_fits.pdf'.format(drug,channel))
@@ -303,7 +300,7 @@ def run_hierarchical(drug_channel):
     sigma_cur = np.mean(best_fits[:,-1])
     if (sigma_cur <= locs[3]):
         sigma_cur = locs[3]+0.1
-    print "sigma_cur =", sigma_cur
+    print("sigma_cur =", sigma_cur)
     
     # find initial alpha and beta values by fitting log-logistic distribution to best fits
     # there is an inbuilt fit function, but I found it to be unreliable for some reason
@@ -314,7 +311,7 @@ def run_hierarchical(drug_channel):
     es = cma.CMAEvolutionStrategy(x0, sigma0, opts)
     while not es.stop():
         X = es.ask()
-        es.tell(X, [-np.product(st.fisk.pdf(best_fits[:,1],c=x[1],scale=x[0],loc=0)) for x in X])
+        es.tell(X, [-np.prod(st.fisk.pdf(best_fits[:,1],c=x[1],scale=x[0],loc=0)) for x in X])
     res = es.result
     
     alpha_cur, beta_cur = np.copy(res[0])
@@ -334,7 +331,7 @@ def run_hierarchical(drug_channel):
         s_cur = locs[3]+0.1
 
     first_iteration = np.concatenate(([alpha_cur,beta_cur,mu_cur,s_cur],best_fits[:,:-1].flatten(),[sigma_cur]))
-    print "first mcmc iteration:\n", first_iteration
+    print("first mcmc iteration:\n", first_iteration)
     
     # these are the numbers taken straight from Elkins (see paper for reference)
     elkins_hill_alphas = np.array([1.188, 1.744, 1.530, 0.930, 0.605, 1.325, 1.179, 0.979, 1.790, 1.708, 1.586, 1.469, 1.429, 1.127, 1.011, 1.318, 1.063])
@@ -354,7 +351,7 @@ def run_hierarchical(drug_channel):
 
     modes = np.array([alpha_mode, beta_mode-2., mu_mode, s_mode, sigma_mode])
 
-    print "modes:", modes
+    print("modes:", modes)
     
     # designed for priors to have modes at means of elkins data, but width is more important
     
@@ -423,7 +420,7 @@ def run_hierarchical(drug_channel):
     # create/wipe MCMC output file
     with open(chain_file,'w') as outfile:
         outfile.write("# Hill ~ log-logistic(alpha,beta), pIC50 ~ logistic(mu,s)\n")
-        outfile.write("# alpha, beta, mu, s, hill_1, pic50_1, hill_2, pic50_2, ..., hill_Ne, pic50_Ne, sigma\n") # this is the order of parameters stored in the chain
+        outfile.write("# alpha, beta, mu, s, pic50_1, hill_1, pic50_2, hill_2, ..., pic50_Ne, hill_Ne, sigma\n") # this is the order of parameters stored in the chain
 
 
     # have to choose initial covariance matrix for proposal distribution
@@ -442,11 +439,11 @@ def run_hierarchical(drug_channel):
     theta_cur = np.copy(first_iteration)
     cov_cur = np.copy(first_cov)
 
-    print "theta_cur =", theta_cur
+    print("theta_cur =", theta_cur)
 
     log_target_cur = log_target_distribution(experiments,theta_cur,shapes,scales,locs)
 
-    print "initial log_target_cur =", log_target_cur
+    print("initial log_target_cur =", log_target_cur)
 
     # effectively step size, scales covariance matrix
     loga = 0.
@@ -466,10 +463,10 @@ def run_hierarchical(drug_channel):
         total_iterations = 200000
     # after what fraction of total_iterations to print a little status message
     status_when = 10000
-    saved_iterations = total_iterations/thinning+1
-    pre_thin_burn = total_iterations/4
+    saved_iterations = total_iterations//thinning + 1
+    pre_thin_burn = total_iterations//4
     # we discard the first quarter of iterations, as this gen
-    burn = saved_iterations/4
+    burn = saved_iterations//4
 
     # pre-allocate the space for MCMC iterations
     # not a problem when we don't need to do LOADS of iterations
@@ -500,17 +497,17 @@ def run_hierarchical(drug_channel):
             mean_estimate = (1-gamma_s) * mean_estimate + gamma_s * theta_cur
             loga += gamma_s*(accepted-target_acceptance)
         if t%thinning==0:
-            chain[t/thinning,:] = np.concatenate((np.copy(theta_cur),[log_target_cur]))
+            chain[math.floor(t/thinning),:] = np.concatenate((np.copy(theta_cur),[log_target_cur]))
         if (t%status_when==0):
-            print "{} / {}".format(t/status_when,total_iterations/status_when)
+            print("{} / {}".format(t//status_when,total_iterations//status_when))
             time_taken_so_far = time.time()-start
             estimated_time_left = time_taken_so_far/t*(total_iterations-t)
-            print "Time taken: {} s = {} min".format(np.round(time_taken_so_far,1),np.round(time_taken_so_far/60,2))
-            print "acceptance = {}".format(np.round(acceptance,5))
-            print "Estimated time remaining: {} s = {} min".format(np.round(estimated_time_left,1),np.round(estimated_time_left/60,2))
+            print("Time taken: {} s = {} min".format(np.round(time_taken_so_far,1),np.round(time_taken_so_far/60,2)))
+            print("acceptance = {}".format(np.round(acceptance,5)))
+            print("Estimated time remaining: {} s = {} min".format(np.round(estimated_time_left,1),np.round(estimated_time_left/60,2)))
         t += 1
-    print "**********"
-    print "final_iteration =", chain[-1,:]
+    print("**********")
+    print("final_iteration =", chain[-1,:])
     with open(chain_file,'a') as outfile:
         np.savetxt(outfile,chain)
         
@@ -519,7 +516,7 @@ def run_hierarchical(drug_channel):
     indices = npr.randint(burn,saved_iterations,args.num_APs)
     samples_file = dr.alpha_mu_downsampling(drug,channel)
     AP_samples = chain[indices,:]
-    print "saving (alpha,mu) samples to", samples_file
+    print("saving (alpha,mu) samples to", samples_file)
     with open(samples_file,'w') as outfile:
         outfile.write('# {} (alpha,mu) samples from hierarchical MCMC for {} + {}\n'.format(args.num_APs,drug,channel))
         np.savetxt(outfile,AP_samples[:,[0,2]])
@@ -537,16 +534,16 @@ def run_hierarchical(drug_channel):
             ax.plot(chain[:t,i])
             if i < dim-1:
                 plt.setp(ax.get_xticklabels(), visible=False)
-            elif i==1:
+            if i==1:
                 y_label = r'$\beta$'
             elif i==2:
                 y_label = r'$\mu$'
             elif i==3:
                 y_label = r'$s$'
             elif (i%2==0)and(i<dim-1):
-                y_label = r'$pIC50_{'+str(i/2-1)+'}$'
+                y_label = r'$pIC50_{'+str(i//2-1)+'}$'
             elif (i<dim-1):
-                y_label = r'$Hill_{'+str(i/2-1)+'}$'
+                y_label = r'$Hill_{'+str(i//2-1)+'}$'
             else:
                 y_label = r'$\sigma$'
                 ax.set_xlabel('Iteration (thinned)')
@@ -563,7 +560,7 @@ def run_hierarchical(drug_channel):
     for i in range(dim):
         fig = plt.figure(figsize=(5,4))
         ax = fig.add_subplot(111)
-        ax.hist(chain[burn:,i],bins=50,normed=True,color='blue',edgecolor='blue')
+        ax.hist(chain[burn:,i],bins=50,density=True,color='blue',edgecolor='blue')
         ax.set_ylabel('Marginal probability density')
         if i==0:
             x_label = r'$\alpha$'
@@ -577,12 +574,12 @@ def run_hierarchical(drug_channel):
         elif i==3:
             x_label = r'$s$'
             filename = 's'
-        elif (i%2==0)and(i<dim-1):
-            x_label = r'$Hill_{'+str(i/2-1)+'}$'
-            filename = 'hill_{}'.format(i/2-1)
+        elif (i%2==0)and(i<dim-1):  # chain stores pIC50_i at even, Hill_i at odd indices
+            x_label = r'$pIC50_{'+str(i//2-1)+'}$'
+            filename = 'pic50_{}'.format(i//2-1)
         elif (i<dim-1):
-            x_label = r'$pIC50_{'+str(i/2-1)+'}$'
-            filename = 'pic50_{}'.format(i/2-1)
+            x_label = r'$Hill_{'+str(i//2-1)+'}$'
+            filename = 'hill_{}'.format(i//2-1)
         else:
             x_label = r'$\sigma$'
             filename = 'sigma'
@@ -614,11 +611,11 @@ def run_hierarchical(drug_channel):
         if (i<4):
             min_sample = np.min(chain[burn:,i])
             max_sample = np.max(chain[burn:,i])
-            ax.hist(chain[burn:,i],bins=50,normed=True,color='blue',edgecolor='blue')
+            ax.hist(chain[burn:,i],bins=50,density=True,color='blue',edgecolor='blue')
         elif (i==4):
             min_sample = np.min(chain[burn:,-2])
             max_sample = np.max(chain[burn:,-2])
-            ax.hist(chain[burn:,-2],bins=50,normed=True,color='blue',edgecolor='blue')  # -1 would be log-target
+            ax.hist(chain[burn:,-2],bins=50,density=True,color='blue',edgecolor='blue')  # -1 would be log-target
         ax.set_xlim(min_sample,max_sample)
         pts_in_this_range = np.where((prior_xs[i] >= min_sample) & (prior_xs[i] <= max_sample))
         x_in_this_range = prior_xs[i][pts_in_this_range]
@@ -637,35 +634,35 @@ def run_hierarchical(drug_channel):
     fig.savefig(figs_dir+'all_prior_distributions_and_marginals.pdf')
     plt.close()
         
-    print "Marginal plots saved in", marginals_dir
+    print("Marginal plots saved in", marginals_dir)
 
-    print "\n\n{} + {} complete!\n\n".format(drug,channel)
+    print("\n\n{} + {} complete!\n\n".format(drug,channel))
     
 # single-level MCMC
 def run_single_level(drug_channel):
 
     drug, channel = drug_channel
     
-    print "\n\n{} + {}\n\n".format(drug,channel)
+    print("\n\n{} + {}\n\n".format(drug,channel))
     
     seed = 100
 
     try:
         num_expts, experiment_numbers, experiments = dr.load_crumb_data(drug,channel)
     except:
-        print "Problem loading data, guessing there are no entries for {} + {} --- skipping".format(drug, channel)
+        print("Problem loading data, guessing there are no entries for {} + {} --- skipping".format(drug, channel))
         return None
     
     drug,channel,chain_file,images_dir = dr.nonhierarchical_chain_file_and_figs_dir(args.model, drug, channel, temperature)
     
     concs = np.array([])
     responses = np.array([])
-    for i in xrange(num_expts):
+    for i in range(num_expts):
         concs = np.concatenate((concs,experiments[i][:,0]))
         responses = np.concatenate((responses,experiments[i][:,1]))
         
     if np.any(np.isnan(responses)):
-        print "Skipping {} because of empty responses / missing data".format(drug_channel)
+        print("Skipping {} because of empty responses / missing data".format(drug_channel))
         return None
         
     #print experiments
@@ -683,7 +680,7 @@ def run_single_level(drug_channel):
     pi_bit = dr.compute_pi_bit_of_log_likelihood(where_r_other)
     
     # plot priors
-    for i in xrange(num_params):
+    for i in range(num_params):
         fig = plt.figure(figsize=(4,3))
         ax = fig.add_subplot(111)
         ax.grid()
@@ -779,7 +776,7 @@ def run_single_level(drug_channel):
     plt.close()
     
     if args.best_fit_only:
-        print "\nStopping {}+{} after doing and plotting best fit\n".format(drug, channel)
+        print("\nStopping {}+{} after doing and plotting best fit\n".format(drug, channel))
         return None
 
     # let MCMC look around for a bit before adaptive covariance matrix
@@ -807,7 +804,7 @@ def run_single_level(drug_channel):
     # how often to print a little status message
     status_when = total_iterations / 20
 
-    saved_iterations = total_iterations/thinning+1
+    saved_iterations = math.floor(total_iterations/thinning) + 1
     # also want to store log-target value at each iteration
     chain = np.zeros((saved_iterations,num_params+1))
 
@@ -845,9 +842,9 @@ def run_single_level(drug_channel):
             mean_estimate = (1-gamma_s) * mean_estimate + gamma_s * theta_cur
             loga += gamma_s*(accepted-target_acceptance)
         if (t%thinning==0):
-            chain[t/thinning,:] = np.concatenate((np.copy(theta_cur),[log_target_cur]))
+            chain[math.floor(t/thinning),:] = np.concatenate((np.copy(theta_cur),[log_target_cur]))
         if (t%status_when==0):
-            #print "{} / {}".format(t/status_when,total_iterations/status_when)
+            #print "{} / {}".format(t//status_when,total_iterations//status_when)
             time_taken_so_far = time.time()-start
             estimated_time_left = time_taken_so_far/t*(total_iterations-t)
             #print "Time taken: {} s = {} min".format(np.round(time_taken_so_far,1),np.round(time_taken_so_far/60,2))
@@ -859,7 +856,7 @@ def run_single_level(drug_channel):
     #print "Final iteration:", chain[-1,:], "\n"
     
     burn_fraction = args.burn_in_fraction
-    burn = saved_iterations/burn_fraction
+    burn = math.floor(saved_iterations/burn_fraction)
     
     chain = chain[burn:,:]  # remove burn-in before saving
     with open(chain_file,'w') as outfile:
@@ -878,8 +875,7 @@ def run_single_level(drug_channel):
         figs.append(plt.figure())
         axs.append([])
         axs[i].append(figs[i].add_subplot(211))
-        axs[i][0].hist(chain[:,i], bins=40, normed=True, color='blue', edgecolor='blue')
-        axs[i][0].legend()
+        axs[i][0].hist(chain[:,i], bins=40, density=True, color='blue', edgecolor='blue')
         axs[i][0].set_title("MCMC marginal distributions")
         axs[i][0].set_ylabel("Normalised frequency")
         axs[i][0].grid()
@@ -921,7 +917,7 @@ def run_single_level(drug_channel):
                 subplot_position = num_params*i+j+1
                 if i==j:
                     axes[ij] = matrix_fig.add_subplot(num_params,num_params,subplot_position)
-                    axes[ij].hist(chain[:,i],bins=50,normed=True,color='blue', edgecolor='blue')
+                    axes[ij].hist(chain[:,i],bins=50,density=True,color='blue', edgecolor='blue')
                 elif j==0: # this column shares x-axis with top-left
                     axes[ij] = matrix_fig.add_subplot(num_params,num_params,subplot_position,sharex=axes["00"])
                     counts, xedges, yedges, Image = axes[ij].hist2d(chain[:,j],chain[:,i],cmap='hot_r',bins=50,norm=norm)
@@ -964,10 +960,10 @@ def run_single_level(drug_channel):
     matrix_fig.tight_layout()
     matrix_fig.savefig(images_dir+"{}_{}_model_{}_scatterplot_matrix.png".format(drug,channel,args.model))
     matrix_fig.savefig(images_dir+"{}_{}_model_{}_scatterplot_matrix.pdf".format(drug,channel,args.model))
-    plt.close()
+    plt.close("all")  # also closes the first (discarded) scatterplot-matrix figure
 
 
-    print "\n\n{} + {} complete!\n\n".format(drug,channel)
+    print("\n\n{} + {} complete!\n\n".format(drug,channel))
     return None
     
 if args.hierarchical:
@@ -975,30 +971,37 @@ if args.hierarchical:
 elif (not args.hierarchical): # assume single-level MCMC if hierarchical not specified
     run = run_single_level
 
-drugs_channels = it.product(drugs_to_run,channels_to_run)
-if (args.num_cores<=1) or (len(drugs_to_run)==1):
-    for drug_channel in drugs_channels:
-        run(drug_channel)
-        #try:
-        #    run(drug_channel)
-        #except KeyboardInterrupt:
-        #    sys.exit("\nAborting everything\n")
-        #except:
-        #    print "Failed to run", drug_channel
-        # try/except is good when running multiple MCMCs and leaving them overnight,say
-        # if one or more crash then the others will survive!
-        # however, if you need more "control", comment out the try/except, and uncomment the other run(drug_channel) line
-        #try:
-        #    run(drug_channel)
-        #except Exception,e:
-        #    print e
-        #    print "Failed to run {} + {}!".format(drug_channel[0],drug_channel[1])
-# run multiple MCMCs in parallel
-elif (args.num_cores>1):
-    import multiprocessing as mp
-    num_cores = min(args.num_cores, mp.cpu_count()-1)
-    pool = mp.Pool(processes=num_cores)
-    pool.map_async(run,drugs_channels).get(99999)
-    pool.close()
-    pool.join()
+# Only run from the main process: multiprocessing re-imports this script in each
+# worker (the default on macOS/Windows, and on Linux from Python 3.14), so the
+# interactive menu and the dispatch must not run again there.
+if __name__ == "__main__":
+    # list drug and channel options, select from command line
+    # can select more than one of either
+    drugs_to_run, channels_to_run = dr.list_drug_channel_options(args.all)
 
+    drugs_channels = it.product(drugs_to_run,channels_to_run)
+    if (args.num_cores<=1) or (len(drugs_to_run)==1):
+        for drug_channel in drugs_channels:
+            run(drug_channel)
+            #try:
+            #    run(drug_channel)
+            #except KeyboardInterrupt:
+            #    sys.exit("\nAborting everything\n")
+            #except:
+            #    print("Failed to run", drug_channel)
+            # try/except is good when running multiple MCMCs and leaving them overnight,say
+            # if one or more crash then the others will survive!
+            # however, if you need more "control", comment out the try/except, and uncomment the other run(drug_channel) line
+            #try:
+            #    run(drug_channel)
+            #except Exception as e:
+            #    print(e)
+            #    print("Failed to run {} + {}!".format(drug_channel[0],drug_channel[1]))
+    # run multiple MCMCs in parallel
+    elif (args.num_cores>1):
+        import multiprocessing as mp
+        num_cores = min(args.num_cores, mp.cpu_count()-1)
+        pool = mp.Pool(processes=num_cores)
+        pool.map_async(run,drugs_channels).get(99999)
+        pool.close()
+        pool.join()

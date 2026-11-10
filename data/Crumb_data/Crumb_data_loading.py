@@ -22,7 +22,7 @@ df
 
 # In[ ]:
 
-drug_and_channel = df[['Concentration','Inhibition']][df['Drug'] == 'Amiodarone'][df['Channel'] == 'Cav1.2']
+drug_and_channel = df.loc[(df['Drug'] == 'Amiodarone') & (df['Channel'] == 'Cav1.2'), ['Concentration','Inhibition']]
 drug_and_channel
 drug_and_channel.values
 
@@ -43,7 +43,7 @@ print(channels)
 
 for drug in drugs:
     for channel in channels:
-        drug_and_channel_values = df[['Concentration','Inhibition']][df['Drug'] == drug][df['Channel'] == channel]
+        drug_and_channel_values = df.loc[(df['Drug'] == drug) & (df['Channel'] == channel), ['Concentration','Inhibition']]
         print(drug,channel)
         print(drug_and_channel_values)
 

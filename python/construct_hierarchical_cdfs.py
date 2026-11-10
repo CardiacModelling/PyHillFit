@@ -27,7 +27,6 @@ args = parser.parse_args()
 
 dr.setup(args.data_file)
 
-drugs_to_run, channels_to_run = dr.list_drug_channel_options(args.all)
 
 def construct_posterior_predictive_cdfs(alphas,betas,mus,ss):
     num_x_pts = 501
@@ -46,7 +45,7 @@ def construct_posterior_predictive_cdfs(alphas,betas,mus,ss):
     fisk_pdf = st.fisk.pdf
     logistic = st.logistic.cdf
     logistic_pdf = st.logistic.pdf
-    for i in xrange(num_iterations):
+    for i in range(num_iterations):
         hill_cdf_sum += fisk(hill_x_range,c=betas[i],scale=alphas[i],loc=0)
         hill_pdf_sum += fisk_pdf(hill_x_range,c=betas[i],scale=alphas[i],loc=0)
         pic50_cdf_sum += logistic(pic50_x_range,mus[i],ss[i])
@@ -61,14 +60,14 @@ def run(drug_channel):
 
     drug, channel = drug_channel
     
-    print "\n\n{} + {}\n\n".format(drug,channel)
+    print("\n\n{} + {}\n\n".format(drug,channel))
     
     num_expts, experiment_numbers, experiments = dr.load_crumb_data(drug,channel)
     if (0 < args.num_expts < num_expts):
         num_expts = args.num_expts
         save_samples_for_APs = False
     else:
-        print "Fitting to all experiments\n"
+        print("Fitting to all experiments\n")
         save_samples_for_APs = True
     
     
@@ -78,11 +77,11 @@ def run(drug_channel):
     try:
         mcmc = np.loadtxt(chain_file,usecols=range(4))
     except IOError:
-        print "tried loading", chain_file
-        print "No MCMC file found for {} + {}\n".format(drug,channel)
+        print("tried loading", chain_file)
+        print("No MCMC file found for {} + {}\n".format(drug,channel))
         return None
     total_iterations = mcmc.shape[0]
-    burn = total_iterations/4
+    burn = total_iterations//4
     mcmc = mcmc[burn:,:]
     
     
@@ -115,7 +114,7 @@ def run(drug_channel):
         ys = [hill_pdf_sum,pic50_pdf_sum]
         labels = ['$Hill$','$pIC50$']
         file_labels = ['hill','pic50']
-        for i in xrange(2):
+        for i in range(2):
             fig = plt.figure(figsize=(5,4))
             ax = fig.add_subplot(111)
             ax.plot(xs[i],ys[i],color='blue')
@@ -149,30 +148,31 @@ def run(drug_channel):
             np.savetxt(outfile,np.vstack((hill_interpolated_inverse_cdf_samples,pic50_interpolated_inverse_cdf_samples)).T)
 
 
-    print "\n{} + {} done!\n".format(drug,channel)
+    print("\n{} + {} done!\n".format(drug,channel))
     return None
     
-drugs_channels = it.product(drugs_to_run,channels_to_run)
-if (args.num_cores<=1) or (len(drugs_to_run)==1):
-    for drug_channel in drugs_channels:
-        #run(drug_channel)
+# Only run from the main process, not in each multiprocessing worker
+if __name__ == "__main__":
+    drugs_to_run, channels_to_run = dr.list_drug_channel_options(args.all)
+
+    drugs_channels = it.product(drugs_to_run,channels_to_run)
+    if (args.num_cores<=1) or (len(drugs_to_run)==1):
+        for drug_channel in drugs_channels:
+            #run(drug_channel)
         
-        # try/except is good when running multiple MCMCs and leaving them overnight,say
-        # if one or more crash then the others will survive!
-        # however, if you need more "control", comment out the try/except, and uncomment the other run(drug_channel) line
-        try:
-            run(drug_channel)
-        except Exception,e:
-            print e
-            print "Failed to run {} + {}!".format(drug_channel[0],drug_channel[1])
-# run multiple MCMCs in parallel
-elif (args.num_cores>1):
-    import multiprocessing as mp
-    num_cores = min(args.num_cores, mp.cpu_count()-1)
-    pool = mp.Pool(processes=num_cores)
-    pool.map_async(run,drugs_channels).get(9999999)
-    pool.close()
-    pool.join()
-
-
-
+            # try/except is good when running multiple MCMCs and leaving them overnight,say
+            # if one or more crash then the others will survive!
+            # however, if you need more "control", comment out the try/except, and uncomment the other run(drug_channel) line
+            try:
+                run(drug_channel)
+            except Exception as e:
+                print(e)
+                print("Failed to run {} + {}!".format(drug_channel[0],drug_channel[1]))
+    # run multiple MCMCs in parallel
+    elif (args.num_cores>1):
+        import multiprocessing as mp
+        num_cores = min(args.num_cores, mp.cpu_count()-1)
+        pool = mp.Pool(processes=num_cores)
+        pool.map_async(run,drugs_channels).get(9999999)
+        pool.close()
+        pool.join()

@@ -47,7 +47,7 @@ def do_plots(drug_channel):
     
     concs = np.array([])
     responses = np.array([])
-    for i in xrange(num_expts):
+    for i in range(num_expts):
         concs = np.concatenate((concs,experiments[i][:,0]))
         responses = np.concatenate((responses,experiments[i][:,1]))
     
@@ -88,7 +88,7 @@ def do_plots(drug_channel):
 
     pic50s = chain[rand_idx, 0]
     ax1.set_title(r'Model 1: $pIC50 = {}$, fixed $Hill = 1$'.format(np.round(best_pic50,2)))
-    for i in xrange(num_curves):
+    for i in range(num_curves):
         ax1.plot(x, dr.dose_response_model(x, 1., dr.pic50_to_ic50(pic50s[i])), color='black', alpha=0.02)
     max_pd_curve = dr.dose_response_model(x, 1., dr.pic50_to_ic50(best_pic50))
     ax1.plot(x, max_pd_curve, label='Max PD', lw=1.5, color='red')
@@ -118,7 +118,7 @@ def do_plots(drug_channel):
 
     pic50s = chain[rand_idx, 0]
     hills = chain[rand_idx, 1]
-    for i in xrange(num_curves):
+    for i in range(num_curves):
         ax2.plot(x, dr.dose_response_model(x, hills[i], dr.pic50_to_ic50(pic50s[i])), color='black', alpha=0.02)
     max_pd_curve = dr.dose_response_model(x, best_hill, dr.pic50_to_ic50(best_pic50))
     ax2.plot(x, max_pd_curve, label='Max PD', lw=1.5, color='red')
@@ -138,7 +138,7 @@ def do_plots(drug_channel):
     return None
 
 for drug_channel in it.product(drugs_to_run, channels_to_run):
-    print drug_channel
+    print(drug_channel)
     do_plots(drug_channel)
 
 

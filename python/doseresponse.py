@@ -1,4 +1,5 @@
 import os
+import sys
 import pandas as pd
 import numpy as np
 import scipy.stats as st
@@ -39,16 +40,16 @@ def setup(given_file):
 
 def list_drug_channel_options(args_all):
     if not args_all:
-        print "\nDrugs:\n"
+        print("\nDrugs:\n")
         for i in range(len(drugs)):
-            print "{}. {}".format(i+1,drugs[i])
-        drug_indices = [x-1 for x in map(int,raw_input("\nSelect drug numbers: ").split())]
+            print("{}. {}".format(i+1,drugs[i]))
+        drug_indices = [x-1 for x in map(int,input("\nSelect drug numbers: ").split())]
         assert(0 <= len(drug_indices) <= len(drugs))
         drugs_to_run = [drugs[drug_index] for drug_index in drug_indices]
-        print "\nChannels:\n"
+        print("\nChannels:\n")
         for i in range(len(channels)):
-            print "{}. {}".format(i+1,channels[i])
-        channel_indices = [x-1 for x in map(int,raw_input("\nSelect channel numbers: ").split())]
+            print("{}. {}".format(i+1,channels[i]))
+        channel_indices = [x-1 for x in map(int,input("\nSelect channel numbers: ").split())]
         assert(0 <= len(channel_indices) <= len(channels))
         channels_to_run = [channels[channel_index] for channel_index in channel_indices]
     else:
@@ -221,8 +222,8 @@ def log_data_likelihood_model_1_capped(y, where_y_0, where_y_100, where_y_other,
     temp_2 = np.sum((y[where_y_other]-predicted_responses[where_y_other])**2/(2.*sigma**2))
     answer = t * (y_0_sum + y_100_sum - pi_bit - temp_1 - temp_2)
     if np.isnan(answer):
-        print params
-        print predicted_responses
+        print(params)
+        print(predicted_responses)
     return answer
 
 
@@ -307,11 +308,11 @@ def log_gamma_prior(x,shape_param,scale_param,loc_params):
         return -np.inf
     answer = (shape_param-1)*np.log(x-loc_params) - (x-loc_params)/scale_param
     if np.any(np.isnan(answer)):
-        print "NaN from dr.log_gamma_prior!"
-        print "x =", x
-        print "shape_param =", shape_param
-        print "scale_param =", scale_param
-        print "loc_param =", loc_params
+        print("NaN from dr.log_gamma_prior!")
+        print("x =", x)
+        print("shape_param =", shape_param)
+        print("scale_param =", scale_param)
+        print("loc_param =", loc_params)
         sys.exit()
     else:
         return answer
