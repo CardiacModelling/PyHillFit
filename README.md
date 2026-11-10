@@ -5,7 +5,7 @@ This code is associated with the paper "*Hierarchical Bayesian inference for ion
  
 ## Schematic of inputs and outputs
 
-![schematic of PyHillFit inputs and outputs](https://github.com/mirams/PyHillFit/blob/master/schematic.png)
+![schematic of PyHillFit inputs and outputs](schematic.png)
 
 N.B. The response should be the percentage inhibition.
 
