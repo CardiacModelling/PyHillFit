@@ -6,10 +6,12 @@ import os
 import argparse
 import sys
 import multiprocessing as mp
+from functools import partial
 
 
-def compute_log_py_approxn(temp):
+def compute_log_py_approxn(m, temp):
     print(temp)
+    dr.define_model(m)  # model state is per-process, so set it here for multiprocessing workers
     drug,channel,chain_file,images_dir = dr.nonhierarchical_chain_file_and_figs_dir(m, top_drug, top_channel, temp)
     chain = np.loadtxt(chain_file, usecols=range(dr.num_params))
     num_its = chain.shape[0]
@@ -64,40 +66,39 @@ where_r_other = (responses>0) & (responses<100)
 
 pi_bit = dr.compute_pi_bit_of_log_likelihood(where_r_other)
 num_pts = where_r_other.sum()
-for m in range(1, num_models+1):
-    dr.define_model(m)
+# Only run from the main process, not in each multiprocessing worker
+if __name__ == "__main__":
+    for m in range(1, num_models+1):
+        dr.define_model(m)
 
-    temps = (np.arange(dr.n+1.)/dr.n)**dr.c
-    num_temps = len(temps)
+        temps = (np.arange(dr.n+1.)/dr.n)**dr.c
+        num_temps = len(temps)
     
-    if args.num_cores == 1:
-        log_p_ys = np.zeros(num_temps)
-        for i in range(num_temps):
-            log_p_ys[i] = compute_log_py_approxn(temps[i])
-    elif args.num_cores > 1:
-        pool = mp.Pool(args.num_cores)
-        log_p_ys = np.array(pool.map_async(compute_log_py_approxn, temps).get(9999))
-        pool.close()
-        pool.join()
-    print(log_p_ys)
-    expectations[m] = dr.trapezium_rule(temps, log_p_ys)
-    print(expectations)
+        if args.num_cores == 1:
+            log_p_ys = np.zeros(num_temps)
+            for i in range(num_temps):
+                log_p_ys[i] = compute_log_py_approxn(m, temps[i])
+        elif args.num_cores > 1:
+            pool = mp.Pool(args.num_cores)
+            log_p_ys = np.array(pool.map_async(partial(compute_log_py_approxn, m), temps).get(9999))
+            pool.close()
+            pool.join()
+        print(log_p_ys)
+        expectations[m] = float(dr.trapezium_rule(temps, log_p_ys))
+        print(expectations)
     
-drug, channel, chain_file, images_dir = dr.nonhierarchical_chain_file_and_figs_dir(1, top_drug, top_channel, 1)
-bf_dir = "BFs/"
-if not os.path.exists(bf_dir):
-    os.makedirs(bf_dir)
-bf_file = bf_dir + "{}_{}_B12.txt".format(drug,channel)
-for pair in model_pairs:
-    i, j = pair
-    #print expectations[i], expectations[j]
-    Bij = np.exp(expectations[i]-expectations[j])
-    #print Bij
-    #with open("{}_{}_BF.txt".format(drug,channel), "w") as outfile:
-    #    outfile.write("{} + {}\n".format(drug,channel))
-    #    outfile.write("B_{}{} = {}\n".format(i, j, Bij))
-    #    outfile.write("B_{}{} = {}\n".format(j, i, 1./Bij))
-    np.savetxt(bf_file, [Bij])
-
-
-
+    drug, channel, chain_file, images_dir = dr.nonhierarchical_chain_file_and_figs_dir(1, top_drug, top_channel, 1)
+    bf_dir = "BFs/"
+    if not os.path.exists(bf_dir):
+        os.makedirs(bf_dir)
+    bf_file = bf_dir + "{}_{}_B12.txt".format(drug,channel)
+    for pair in model_pairs:
+        i, j = pair
+        #print expectations[i], expectations[j]
+        Bij = np.exp(expectations[i]-expectations[j])
+        #print Bij
+        #with open("{}_{}_BF.txt".format(drug,channel), "w") as outfile:
+        #    outfile.write("{} + {}\n".format(drug,channel))
+        #    outfile.write("B_{}{} = {}\n".format(i, j, Bij))
+        #    outfile.write("B_{}{} = {}\n".format(j, i, 1./Bij))
+        np.savetxt(bf_file, [Bij])

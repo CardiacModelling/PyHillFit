@@ -90,12 +90,12 @@ def do_mcmc(temperature):#, theta0):
         """try:
             theta_star = npr.multivariate_normal(theta_cur, np.exp(loga)*cov_estimate)
         except Warning as e:
-            print str(e)
-            print "Iteration:", t
-            print "temperature:", temperature
-            print "theta_cur:", theta_cur
-            print "loga:", loga
-            print "cov_estimate:", cov_estimate
+            print(str(e))
+            print("Iteration:", t)
+            print("temperature:", temperature)
+            print("theta_cur:", theta_cur)
+            print("loga:", loga)
+            print("cov_estimate:", cov_estimate)
             sys.exit()"""
         log_target_star = dr.log_target(responses, where_r_0, where_r_100, where_r_other, concs, theta_star, temperature, pi_bit)
         u = npr.rand()
@@ -110,7 +110,7 @@ def do_mcmc(temperature):#, theta0):
             chain[math.floor(t/thinning),:] = np.concatenate((theta_cur, [log_target_cur]))
         if t % status_when == 0:
             #pass
-            print(t/status_when, "/", total_iterations/status_when)
+            print(t//status_when, "/", total_iterations//status_when)
             print("acceptance =", acceptance)
         if t == adapt_when:
             mean_estimate = np.copy(theta_cur)
@@ -126,29 +126,34 @@ def do_mcmc(temperature):#, theta0):
     return chain[burn:, :]
 
 
-for drug,channel in it.product(drugs_to_run, channels_to_run):
+# drugs_to_run and channels_to_run each hold exactly one entry (from -d and -c).
+# The data are set up at module level so multiprocessing workers, which
+# re-import this script, also see them.
+drug, channel = drugs_to_run[0], channels_to_run[0]
 
-    num_expts, experiment_numbers, experiments = dr.load_crumb_data(drug, channel)
+num_expts, experiment_numbers, experiments = dr.load_crumb_data(drug, channel)
 
-    concs = np.array([])
-    responses = np.array([])
-    for i in range(num_expts):
-        concs = np.concatenate((concs, experiments[i][:, 0]))
-        responses = np.concatenate((responses, experiments[i][:, 1]))
-        
-    where_r_0 = responses==0
-    where_r_100 = responses==100
-    where_r_other = (0<responses) & (responses<100)
+concs = np.array([])
+responses = np.array([])
+for i in range(num_expts):
+    concs = np.concatenate((concs, experiments[i][:, 0]))
+    responses = np.concatenate((responses, experiments[i][:, 1]))
     
-    print("where_r_0:", where_r_0)
-    print("where_r_100:", where_r_100)
-    print("where_r_other:", where_r_other)
-    
-    pi_bit = dr.compute_pi_bit_of_log_likelihood(where_r_other)
+where_r_0 = responses==0
+where_r_100 = responses==100
+where_r_other = (0<responses) & (responses<100)
 
-    #model = 2  #int(sys.argv[1])
+print("where_r_0:", where_r_0)
+print("where_r_100:", where_r_100)
+print("where_r_other:", where_r_other)
+
+pi_bit = dr.compute_pi_bit_of_log_likelihood(where_r_other)
+
+#model = 2  #int(sys.argv[1])
 
 
+# Only run from the main process, not in each multiprocessing worker
+if __name__ == "__main__":
     temperatures = (np.arange(dr.n+1.)/dr.n)**dr.c
     print("\nDoing temperatures: {}\n".format(temperatures))
 
@@ -178,7 +183,6 @@ for drug,channel in it.product(drugs_to_run, channels_to_run):
             axs.append([])
             axs[i].append(figs[i].add_subplot(211))
             axs[i][0].hist(chain[:,i], bins=40, density=True, color='blue', edgecolor='blue')
-            axs[i][0].legend()
             axs[i][0].set_title("MCMC marginal distributions")
             axs[i][0].set_ylabel("Normalised frequency")
             axs[i][0].grid()
@@ -263,4 +267,4 @@ for drug,channel in it.product(drugs_to_run, channels_to_run):
         matrix_fig.tight_layout()
         matrix_fig.savefig(images_dir+"{}_{}_temp_{}_scatterplot_matrix.png".format(drug,channel,temperature))
         #matrix_fig.savefig(images_dir+"{}_{}_temp_{}_scatterplot_matrix.pdf".format(drug,channel,temperature))
-        plt.close()
+        plt.close("all")  # also closes the first (discarded) scatterplot-matrix figure

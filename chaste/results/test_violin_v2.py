@@ -72,31 +72,31 @@ risk3 = mpatches.Patch(color=colors[3], label='Known risk')
 
 df = pd.DataFrame(columns=["Drug","APD90 (ms)"])
 
-print "Last 4 Quinidine:", all_samples[-4:]
+print("Last 4 Quinidine:", all_samples[-4:])
 
 df["Drug"] = labels
 df["APD90 (ms)"] = all_samples
 df["Risk"] = all_risks
-print df
+print(df)
 
 palette_dir = {0:'#7fc97f',1:'#beaed4',2:'#fdc086',3:'#ffff99'}
 
 
-print df["Risk"].map(palette_dir)
+print(df["Risk"].map(palette_dir))
         
 fig = plt.figure(figsize=(12,14))
 ax = fig.add_subplot(111)
 control_line = ax.axhline(control_apd90,color='blue',label='Control')
 prolonged_line = ax.axhline(prolonged_apd90,color='red',label='{}% prolongation'.format(percent_prolongation))
-sns.violinplot(y="APD90 (ms)",x="Drug",data=df, scale="width",palette=risk_colors,ax=ax)#,hue="Risk")
+sns.violinplot(y="APD90 (ms)",x="Drug",hue="Drug",legend=False,data=df,density_norm="width",palette=risk_colors,ax=ax)
 ax.set_xlabel('')
 ax.set_ylim(200,600)
 
-print control_line
+print(control_line)
 
 ax.text(20,580,"Max Quinidine sample: {}".format(all_samples[-1]),size=14)
 labels = ax.get_xticklabels()
-xticklocs = ax.xaxis.get_ticklocs()
+xticklocs = np.asarray(ax.xaxis.get_ticklocs())  # a list in newer matplotlib
 plt.xticks(xticklocs+0.5, labels, rotation=60, ha='right')
 ax.legend(handles=[control_line,prolonged_line,risk0,risk1,risk2,risk3], loc=2)
 #ax.legend(loc=2)

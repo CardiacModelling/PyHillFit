@@ -33,13 +33,13 @@ for drug, channel in it.product(drugs_to_run, channels_to_run):
     try:
         num_expts, experiment_numbers, experiments = dr.load_crumb_data(drug,channel)
     except:
-        print "\nCan't load experimental data for {} + {} --- skipping\n".format(drug, channel)
+        print("\nCan't load experimental data for {} + {} --- skipping\n".format(drug, channel))
         continue
     drug, channel, chain_file, images_dir = dr.nonhierarchical_chain_file_and_figs_dir(args.model, drug, channel, temperature)
     
     concs = np.array([])
     responses = np.array([])
-    for i in xrange(num_expts):
+    for i in range(num_expts):
         concs = np.concatenate((concs,experiments[i][:,0]))
         responses = np.concatenate((responses,experiments[i][:,1]))
         
@@ -49,7 +49,7 @@ for drug, channel in it.product(drugs_to_run, channels_to_run):
     try:
         chain = np.loadtxt(chain_file)
     except:
-        print "\nCan't find/load chain file for {} + {}, model {} --- skipping\n".format(drug, channel, args.model)
+        print("\nCan't find/load chain file for {} + {}, model {} --- skipping\n".format(drug, channel, args.model))
         continue
     saved_its, d = chain.shape
     
@@ -71,12 +71,12 @@ for drug, channel in it.product(drugs_to_run, channels_to_run):
     
     fig, ax = plt.subplots(1, 1, figsize=(5,4))
     ax.grid()
-    ax.set_xlabel("{} concentration ($\mu$M)".format(drug))
+    ax.set_xlabel(r"{} concentration ($\mu$M)".format(drug))
     ax.set_ylabel("% {} block".format(channel))
     ax.set_xscale("log")
     x = np.logspace(min_x, max_x, num_x_pts)
     
-    for t in xrange(args.num_samples):
+    for t in range(args.num_samples):
         pic50, hill = chain[t, :]
         predicted_response_curve = dr.dose_response_model(x, hill, dr.pic50_to_ic50(pic50))
         ax.plot(x, predicted_response_curve, color='black', alpha=alpha)
@@ -84,10 +84,10 @@ for drug, channel in it.product(drugs_to_run, channels_to_run):
         ax.plot(concs, responses, 'o', color='orange', ms=8, zorder=10)
     fig.tight_layout()
     fig.savefig(png_file)
-    print "\nSaved {}\n".format(samples_png)
+    print("\nSaved {}\n".format(samples_png))
     if args.save_pdf:
         fig.savefig(samples_pdf)
-        print "\nSaved {}\n".format(samples_pdf)
+        print("\nSaved {}\n".format(samples_pdf))
         
     plt.close()
 

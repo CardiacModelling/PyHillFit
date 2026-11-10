@@ -29,14 +29,13 @@ args = parser.parse_args()
 
 dr.setup(args.data_file)
 
-drugs_to_run, channels_to_run = dr.list_drug_channel_options(args.all)
 
     
 colors = ['#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99']
 
 def run(drug_channel):
     drug,channel = drug_channel
-    print "\n\n{} + {}\n\n".format(drug,channel)
+    print("\n\n{} + {}\n\n".format(drug,channel))
     
     num_expts, experiment_numbers, experiments = dr.load_crumb_data(drug,channel)
     if (0 < args.num_expts < num_expts):
@@ -46,12 +45,12 @@ def run(drug_channel):
     
     chain = np.loadtxt(chain_file)
     end = chain.shape[0]
-    burn = end/4
+    burn = end//4
     
     pic50_samples = np.zeros(args.num_hist_samples)
     hill_samples = np.zeros(args.num_hist_samples)
     rand_idx = npr.randint(burn, end, args.num_hist_samples)    
-    for t in xrange(args.num_hist_samples):
+    for t in range(args.num_hist_samples):
         alpha, beta, mu, s = chain[rand_idx[t], :4]
         hill_samples[t] = st.fisk.rvs(c=beta, scale=alpha, loc=0)
         pic50_samples[t] = st.logistic.rvs(mu, s)
@@ -80,7 +79,7 @@ def run(drug_channel):
         ax1.axvline(conc,color=colors[3+i],lw=2,label=r"{} $\mu$M".format(conc),alpha=0.8)
         
     subset_idx = npr.randint(0, args.num_hist_samples, args.num_samples)
-    for i in xrange(args.num_samples):  # only plot the first T of the H samples (should be fine because they're all randomly selected)
+    for i in range(args.num_samples):  # only plot the first T of the H samples (should be fine because they're all randomly selected)
         ax1.plot(concs,dr.dose_response_model(concs, hill_samples[i], dr.pic50_to_ic50(pic50_samples[i])),color='black', alpha=0.01)
     
     lfs = 9
@@ -94,7 +93,7 @@ def run(drug_channel):
     ax2.set_ylabel(r'Probability density')
     ax2.grid()
     for i, conc in enumerate(args.concs):
-        ax2.hist(dr.dose_response_model(conc,hill_samples,dr.pic50_to_ic50(pic50_samples)),bins=50,normed=True,color=colors[3+i],alpha=0.8,lw=0,label=r"{} $\mu$M {}".format(conc,drug))
+        ax2.hist(dr.dose_response_model(conc,hill_samples,dr.pic50_to_ic50(pic50_samples)),bins=50,density=True,color=colors[3+i],alpha=0.8,lw=0,label=r"{} $\mu$M {}".format(conc,drug))
     
     ax2.set_title('D. Hierarchical predicted\nfuture experiments')
     ax2.legend(loc="best",fontsize=lfs)
@@ -117,7 +116,7 @@ def run(drug_channel):
     mu_samples = chain[alpha_indices, 2]
     for i, conc in enumerate(args.concs):
         ax3.axvline(conc, color=colors[3+i], lw=2, label=r"{} $\mu$M".format(conc), alpha=0.8)
-    for i in xrange(args.num_samples):
+    for i in range(args.num_samples):
         ax3.plot(concs,dr.dose_response_model(concs,alpha_samples[i],dr.pic50_to_ic50(mu_samples[i])),color='black',alpha=0.01)
     ax3.legend(loc=2,fontsize=lfs)
     ax4 = fig.add_subplot(235, sharey=ax2, sharex=ax2)
@@ -130,7 +129,7 @@ def run(drug_channel):
     mus = chain[hist_indices,2]
     
     for i, conc in enumerate(args.concs):
-        ax4.hist(dr.dose_response_model(conc,alphas,dr.pic50_to_ic50(mus)),bins=50,normed=True,color=colors[3+i],alpha=0.8,lw=0,label=r"{} $\mu$M {}".format(conc,drug))
+        ax4.hist(dr.dose_response_model(conc,alphas,dr.pic50_to_ic50(mus)),bins=50,density=True,color=colors[3+i],alpha=0.8,lw=0,label=r"{} $\mu$M {}".format(conc,drug))
     ax4.set_title('E. Hierarchical inferred\nunderlying effects')
     
     plt.setp(ax3.get_yticklabels(), visible=False)
@@ -147,8 +146,10 @@ def run(drug_channel):
         model = 2
     drug,channel,chain_file,figs_dir = dr.nonhierarchical_chain_file_and_figs_dir(model, drug, channel, temperature)
     chain = np.loadtxt(chain_file,usecols=range(num_params-1)) # not interested in log-target values right now
+    if model == 1:
+        chain[:, 1] = 1.  # column 1 is sigma when Hill is fixed; use Hill = 1
     end = chain.shape[0]
-    burn = end/4
+    burn = end//4
 
     sample_indices = npr.randint(burn, end, args.num_samples)
     samples = chain[sample_indices, :]
@@ -172,7 +173,7 @@ def run(drug_channel):
     
     for i, conc in enumerate(args.concs):
         ax5.axvline(conc,color=colors[3+i],alpha=0.8,lw=2,label=r"{} $\mu$M".format(conc))
-    for i in xrange(args.num_samples):
+    for i in range(args.num_samples):
         pic50, hill = samples[i, :]
         ax5.plot(concs,dr.dose_response_model(concs, hill, dr.pic50_to_ic50(pic50)),color='black',alpha=0.01)
     ax5.legend(loc=2,fontsize=lfs)
@@ -185,7 +186,7 @@ def run(drug_channel):
     plt.setp(ax6.get_yticklabels(), visible=False)
     ax6.grid()
     for i, conc in enumerate(args.concs):
-        ax6.hist(dr.dose_response_model(conc, samples[:,1], dr.pic50_to_ic50(samples[:,0])),bins=50,normed=True,alpha=0.8,color=colors[3+i],lw=0,label=r"{} $\mu$M {}".format(conc,drug))
+        ax6.hist(dr.dose_response_model(conc, samples[:,1], dr.pic50_to_ic50(samples[:,0])),bins=50,density=True,alpha=0.8,color=colors[3+i],lw=0,label=r"{} $\mu$M {}".format(conc,drug))
     ax6.set_title('F. Single-level inferred\neffects')
 
     ax6.legend(loc="best",fontsize=lfs)
@@ -196,36 +197,40 @@ def run(drug_channel):
     
     fig.tight_layout()
     png_file = plot_dir+'{}_{}_all_predictions_corrected.png'.format(drug,channel)
-    print png_file
+    print(png_file)
     fig.savefig(png_file)
     pdf_file = plot_dir+'{}_{}_all_predictions_corrected.pdf'.format(drug,channel)
-    print pdf_file
+    print(pdf_file)
     fig.savefig(pdf_file) # uncomment to save as pdf, or change extension to whatever you want
     
 
     plt.close()
     
-    print "Figures saved in", plot_dir
+    print("Figures saved in", plot_dir)
     
 
-drugs_channels = it.product(drugs_to_run,channels_to_run)
-if (args.num_cores<=1) or (len(drugs_to_run)==1):
-    for drug_channel in drugs_channels:
-        #run(drug_channel)
+# Only run from the main process, not in each multiprocessing worker
+if __name__ == "__main__":
+    drugs_to_run, channels_to_run = dr.list_drug_channel_options(args.all)
+
+    drugs_channels = it.product(drugs_to_run,channels_to_run)
+    if (args.num_cores<=1) or (len(drugs_to_run)==1):
+        for drug_channel in drugs_channels:
+            #run(drug_channel)
         
-        # try/except is good when running multiple plots and leaving them overnight,say
-        # if one or more crash then the others will survive!
-        # however, if you need more "control", comment out the try/except, and uncomment the other run(drug_channel) line
-        try:
-            run(drug_channel)
-        except Exception,e:
-            print e
-            print "Failed to run {} + {}!".format(drug_channel[0],drug_channel[1])
-# run multiple plots in parallel
-elif (args.num_cores>1):
-    import multiprocessing as mp
-    num_cores = min(args.num_cores, mp.cpu_count()-1)
-    pool = mp.Pool(processes=num_cores)
-    pool.map_async(run,drugs_channels).get(9999999)
-    pool.close()
-    pool.join()
+            # try/except is good when running multiple plots and leaving them overnight,say
+            # if one or more crash then the others will survive!
+            # however, if you need more "control", comment out the try/except, and uncomment the other run(drug_channel) line
+            try:
+                run(drug_channel)
+            except Exception as e:
+                print(e)
+                print("Failed to run {} + {}!".format(drug_channel[0],drug_channel[1]))
+    # run multiple plots in parallel
+    elif (args.num_cores>1):
+        import multiprocessing as mp
+        num_cores = min(args.num_cores, mp.cpu_count()-1)
+        pool = mp.Pool(processes=num_cores)
+        pool.map_async(run,drugs_channels).get(9999999)
+        pool.close()
+        pool.join()

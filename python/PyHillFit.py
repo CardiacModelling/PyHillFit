@@ -20,10 +20,10 @@ try:
 except:
     sys.exit("couldn't find module cma")
 
-from distutils.version import LooseVersion
+from packaging.version import Version  # distutils was removed in Python 3.12
 latest_tested_version = "2.6.0"
 installed_version = cma.__version__.split()[0]
-if LooseVersion(installed_version) < LooseVersion(latest_tested_version):
+if Version(installed_version) < Version(latest_tested_version):
     print("Version {} of cma installed. Latest tested version is {}.".format(installed_version, latest_tested_version))
     sys.exit("Please upgrade cma to use PyHillFit: https://pypi.org/project/cma/")
 
@@ -61,12 +61,8 @@ num_params = dr.num_params
 # load data from specified data file
 dr.setup(args.data_file)
 
-# list drug and channel options, select from command line
-# can select more than one of either
-drugs_to_run, channels_to_run = dr.list_drug_channel_options(args.all)
-
 """if dr.dir_name == "PyHillFit_input_file":
-    print "Removing hERG from list of channels to run"
+    print("Removing hERG from list of channels to run")
     try:
         channels_to_run.remove("hERG")
     except:
@@ -292,7 +288,7 @@ def run_hierarchical(drug_channel):
         ax.set_ylabel('% {} block'.format(channel))
         ax.legend(loc=2)
         ax.grid()
-        ax.set_title('Hills = {}\nIC50s = {}'.format([round(best_fits[expt,1],1) for expt in experiment_numbers],[round(dr.pic50_to_ic50(best_fits[expt,0]),1) for expt in experiment_numbers]))
+        ax.set_title('Hills = {}\nIC50s = {}'.format([round(float(best_fits[expt,1]),1) for expt in experiment_numbers],[round(float(dr.pic50_to_ic50(best_fits[expt,0])),1) for expt in experiment_numbers]))
         fig.tight_layout()
         fig.savefig(figs_dir+'{}_{}_cma-es_best_fits.png'.format(drug,channel))
         fig.savefig(figs_dir+'{}_{}_cma-es_best_fits.pdf'.format(drug,channel))
@@ -315,7 +311,7 @@ def run_hierarchical(drug_channel):
     es = cma.CMAEvolutionStrategy(x0, sigma0, opts)
     while not es.stop():
         X = es.ask()
-        es.tell(X, [-np.product(st.fisk.pdf(best_fits[:,1],c=x[1],scale=x[0],loc=0)) for x in X])
+        es.tell(X, [-np.prod(st.fisk.pdf(best_fits[:,1],c=x[1],scale=x[0],loc=0)) for x in X])
     res = es.result
     
     alpha_cur, beta_cur = np.copy(res[0])
@@ -424,7 +420,7 @@ def run_hierarchical(drug_channel):
     # create/wipe MCMC output file
     with open(chain_file,'w') as outfile:
         outfile.write("# Hill ~ log-logistic(alpha,beta), pIC50 ~ logistic(mu,s)\n")
-        outfile.write("# alpha, beta, mu, s, hill_1, pic50_1, hill_2, pic50_2, ..., hill_Ne, pic50_Ne, sigma\n") # this is the order of parameters stored in the chain
+        outfile.write("# alpha, beta, mu, s, pic50_1, hill_1, pic50_2, hill_2, ..., pic50_Ne, hill_Ne, sigma\n") # this is the order of parameters stored in the chain
 
 
     # have to choose initial covariance matrix for proposal distribution
@@ -467,10 +463,10 @@ def run_hierarchical(drug_channel):
         total_iterations = 200000
     # after what fraction of total_iterations to print a little status message
     status_when = 10000
-    saved_iterations = total_iterations/thinning+1
-    pre_thin_burn = total_iterations/4
+    saved_iterations = total_iterations//thinning + 1
+    pre_thin_burn = total_iterations//4
     # we discard the first quarter of iterations, as this gen
-    burn = saved_iterations/4
+    burn = saved_iterations//4
 
     # pre-allocate the space for MCMC iterations
     # not a problem when we don't need to do LOADS of iterations
@@ -503,7 +499,7 @@ def run_hierarchical(drug_channel):
         if t%thinning==0:
             chain[math.floor(t/thinning),:] = np.concatenate((np.copy(theta_cur),[log_target_cur]))
         if (t%status_when==0):
-            print("{} / {}".format(t/status_when,total_iterations/status_when))
+            print("{} / {}".format(t//status_when,total_iterations//status_when))
             time_taken_so_far = time.time()-start
             estimated_time_left = time_taken_so_far/t*(total_iterations-t)
             print("Time taken: {} s = {} min".format(np.round(time_taken_so_far,1),np.round(time_taken_so_far/60,2)))
@@ -538,16 +534,16 @@ def run_hierarchical(drug_channel):
             ax.plot(chain[:t,i])
             if i < dim-1:
                 plt.setp(ax.get_xticklabels(), visible=False)
-            elif i==1:
+            if i==1:
                 y_label = r'$\beta$'
             elif i==2:
                 y_label = r'$\mu$'
             elif i==3:
                 y_label = r'$s$'
             elif (i%2==0)and(i<dim-1):
-                y_label = r'$pIC50_{'+str(i/2-1)+'}$'
+                y_label = r'$pIC50_{'+str(i//2-1)+'}$'
             elif (i<dim-1):
-                y_label = r'$Hill_{'+str(i/2-1)+'}$'
+                y_label = r'$Hill_{'+str(i//2-1)+'}$'
             else:
                 y_label = r'$\sigma$'
                 ax.set_xlabel('Iteration (thinned)')
@@ -578,12 +574,12 @@ def run_hierarchical(drug_channel):
         elif i==3:
             x_label = r'$s$'
             filename = 's'
-        elif (i%2==0)and(i<dim-1):
-            x_label = r'$Hill_{'+str(i/2-1)+'}$'
-            filename = 'hill_{}'.format(i/2-1)
+        elif (i%2==0)and(i<dim-1):  # chain stores pIC50_i at even, Hill_i at odd indices
+            x_label = r'$pIC50_{'+str(i//2-1)+'}$'
+            filename = 'pic50_{}'.format(i//2-1)
         elif (i<dim-1):
-            x_label = r'$pIC50_{'+str(i/2-1)+'}$'
-            filename = 'pic50_{}'.format(i/2-1)
+            x_label = r'$Hill_{'+str(i//2-1)+'}$'
+            filename = 'hill_{}'.format(i//2-1)
         else:
             x_label = r'$\sigma$'
             filename = 'sigma'
@@ -848,7 +844,7 @@ def run_single_level(drug_channel):
         if (t%thinning==0):
             chain[math.floor(t/thinning),:] = np.concatenate((np.copy(theta_cur),[log_target_cur]))
         if (t%status_when==0):
-            #print "{} / {}".format(t/status_when,total_iterations/status_when)
+            #print "{} / {}".format(t//status_when,total_iterations//status_when)
             time_taken_so_far = time.time()-start
             estimated_time_left = time_taken_so_far/t*(total_iterations-t)
             #print "Time taken: {} s = {} min".format(np.round(time_taken_so_far,1),np.round(time_taken_so_far/60,2))
@@ -880,7 +876,6 @@ def run_single_level(drug_channel):
         axs.append([])
         axs[i].append(figs[i].add_subplot(211))
         axs[i][0].hist(chain[:,i], bins=40, density=True, color='blue', edgecolor='blue')
-        axs[i][0].legend()
         axs[i][0].set_title("MCMC marginal distributions")
         axs[i][0].set_ylabel("Normalised frequency")
         axs[i][0].grid()
@@ -965,7 +960,7 @@ def run_single_level(drug_channel):
     matrix_fig.tight_layout()
     matrix_fig.savefig(images_dir+"{}_{}_model_{}_scatterplot_matrix.png".format(drug,channel,args.model))
     matrix_fig.savefig(images_dir+"{}_{}_model_{}_scatterplot_matrix.pdf".format(drug,channel,args.model))
-    plt.close()
+    plt.close("all")  # also closes the first (discarded) scatterplot-matrix figure
 
 
     print("\n\n{} + {} complete!\n\n".format(drug,channel))
@@ -976,30 +971,37 @@ if args.hierarchical:
 elif (not args.hierarchical): # assume single-level MCMC if hierarchical not specified
     run = run_single_level
 
-drugs_channels = it.product(drugs_to_run,channels_to_run)
-if (args.num_cores<=1) or (len(drugs_to_run)==1):
-    for drug_channel in drugs_channels:
-        run(drug_channel)
-        #try:
-        #    run(drug_channel)
-        #except KeyboardInterrupt:
-        #    sys.exit("\nAborting everything\n")
-        #except:
-        #    print "Failed to run", drug_channel
-        # try/except is good when running multiple MCMCs and leaving them overnight,say
-        # if one or more crash then the others will survive!
-        # however, if you need more "control", comment out the try/except, and uncomment the other run(drug_channel) line
-        #try:
-        #    run(drug_channel)
-        #except Exception,e:
-        #    print e
-        #    print "Failed to run {} + {}!".format(drug_channel[0],drug_channel[1])
-# run multiple MCMCs in parallel
-elif (args.num_cores>1):
-    import multiprocessing as mp
-    num_cores = min(args.num_cores, mp.cpu_count()-1)
-    pool = mp.Pool(processes=num_cores)
-    pool.map_async(run,drugs_channels).get(99999)
-    pool.close()
-    pool.join()
+# Only run from the main process: multiprocessing re-imports this script in each
+# worker (the default on macOS/Windows, and on Linux from Python 3.14), so the
+# interactive menu and the dispatch must not run again there.
+if __name__ == "__main__":
+    # list drug and channel options, select from command line
+    # can select more than one of either
+    drugs_to_run, channels_to_run = dr.list_drug_channel_options(args.all)
 
+    drugs_channels = it.product(drugs_to_run,channels_to_run)
+    if (args.num_cores<=1) or (len(drugs_to_run)==1):
+        for drug_channel in drugs_channels:
+            run(drug_channel)
+            #try:
+            #    run(drug_channel)
+            #except KeyboardInterrupt:
+            #    sys.exit("\nAborting everything\n")
+            #except:
+            #    print("Failed to run", drug_channel)
+            # try/except is good when running multiple MCMCs and leaving them overnight,say
+            # if one or more crash then the others will survive!
+            # however, if you need more "control", comment out the try/except, and uncomment the other run(drug_channel) line
+            #try:
+            #    run(drug_channel)
+            #except Exception as e:
+            #    print(e)
+            #    print("Failed to run {} + {}!".format(drug_channel[0],drug_channel[1]))
+    # run multiple MCMCs in parallel
+    elif (args.num_cores>1):
+        import multiprocessing as mp
+        num_cores = min(args.num_cores, mp.cpu_count()-1)
+        pool = mp.Pool(processes=num_cores)
+        pool.map_async(run,drugs_channels).get(99999)
+        pool.close()
+        pool.join()

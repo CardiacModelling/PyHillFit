@@ -38,13 +38,13 @@ def do_plots(drug_channel):
     drug,channel,chain_file,images_dir = dr.nonhierarchical_chain_file_and_figs_dir(model, top_drug, top_channel, temperature)
     
     sigmas = np.loadtxt(chain_file, usecols=[1])
-    ax1.hist(sigmas, bins=40, normed=True, color='blue', edgecolor='blue')
+    ax1.hist(sigmas, bins=40, density=True, color='blue', edgecolor='blue')
     
     model = 2
     drug,channel,chain_file,images_dir = dr.nonhierarchical_chain_file_and_figs_dir(model, top_drug, top_channel, temperature)
     
     sigmas = np.loadtxt(chain_file, usecols=[2])
-    ax2.hist(sigmas, bins=40, normed=True, color='blue', edgecolor='blue')
+    ax2.hist(sigmas, bins=40, density=True, color='blue', edgecolor='blue')
 
     fig.tight_layout()
     fig.savefig("{}_{}_nonh_both_models_sigma_hists.png".format(drug, channel))
