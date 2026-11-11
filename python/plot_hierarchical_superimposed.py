@@ -38,9 +38,10 @@ def run(drug,channel):
     top_param_indices = [0,1,2,3,num_params-2]
     mid_param_indices = [i for i in range(num_params-1) if i not in top_param_indices]
     num_expts = len(mid_param_indices)//2
-    if num_expts <= 4: # qualitative and colourblind safe, apparently
-        colors = ['#a6cee3','#1f78b4','#b2df8a','#33a02c']
+    if num_expts <= 3:
         colors = ['#d7191c','#fdae61','#2c7bb6']
+    elif num_expts == 4: # qualitative and colourblind safe, apparently
+        colors = ['#a6cee3','#1f78b4','#b2df8a','#33a02c']
     else:
         colors = ['#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#e31a1c','#fdbf6f','#ff7f00','#cab2d6','#6a3d9a']
     top_param_labels = [r'$\alpha$',r'$\beta$',r'$\mu$',r'$s$',r'$\sigma$']
@@ -60,7 +61,7 @@ def run(drug,channel):
     curves.set_xscale('log')
     x_range = np.logspace(-4,2,201)
     for j in range(num_curves):
-        for i in range(3):
+        for i in range(num_expts):
             # chain order is alpha, beta, mu, s, pIC50_1, Hill_1, pIC50_2, Hill_2, ..., sigma
             response = dr.dose_response_model(x_range,samples[j,4+2*i+1],dr.pic50_to_ic50(samples[j,4+2*i]))
             curves.plot(x_range,response,color=colors[i],alpha=0.2)
